@@ -1,0 +1,8 @@
+[package]
+name = "metalchemist"
+version = "0.1.0"
+authors = ["frtoud <francois.toulouse@polymtl.ca>"]
+publish = false
+
+[dependencies]
+glium = "0.21"
