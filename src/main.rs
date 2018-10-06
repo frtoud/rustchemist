@@ -1,12 +1,15 @@
 #[macro_use]
 extern crate glium;
+extern crate image;
 use glium::glutin;
 
 mod camera;
 mod vertex;
+mod shaders;
+mod loader;
 
-fn main() {
-
+fn main() 
+{
     //Initialize graphics
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
@@ -19,9 +22,21 @@ fn main() {
     let mut main_camera = camera::Camera::new();
     main_camera.adjust_width_height(200, 200);
 
-    //Send to elsewhere please
+    let program_manager = shaders::ProgramManager::new(&display);
+
+    let prog = program_manager.get_program(shaders::ShaderProgram::Basic);
+
+    let background = loader::get_sprite(&display, "Placeholder.png");
+
     use vertex::Vertex;
-    let v_test = Vertex{ position: [1.0, 1.0, 2.0]};
+    vertex::macrocall();
+    let shape = vec![
+        Vertex { position: [-11.0, -11.0, 0.0] },
+        Vertex { position: [-11.0, 11.0, 0.0] },
+        Vertex { position: [5.0, 5.0, 0.0] },
+    ];
+    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
+    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
     //MAIN LOOP
     let mut exit_condition = false;
@@ -32,7 +47,12 @@ fn main() {
         let mut frame = display.draw();
         frame.clear_color(0.0, 0.0, 0.0, 1.0);
 
+        let uniforms = uniform!
+        {
+            camera: main_camera.view_matrix,
+        };
         //CALL DRAWS HERE
+        frame.draw(&vertex_buffer, &indices, &prog, &uniforms, &Default::default()).unwrap();
 
         frame.finish().unwrap();
 

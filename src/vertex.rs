@@ -3,4 +3,7 @@
     {
         pub position: [f32; 3]
     }
-    implement_vertex!(Vertex, position);
+    pub fn macrocall()
+    {
+        implement_vertex!(Vertex, position);
+    }

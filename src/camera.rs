@@ -30,7 +30,7 @@ impl Camera
         }
         else // Width < Height
         {
-            y /= aspect_ratio;
+            y *= aspect_ratio;
         }
         self.view_matrix = 
         [
