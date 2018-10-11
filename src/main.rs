@@ -8,13 +8,17 @@ mod vertex;
 mod shaders;
 mod loader;
 
+//GameObjects
+mod traits;
+mod grid;
+
 fn main() 
 {
     //Initialize graphics
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("Metalchemist")
-        .with_dimensions(200, 200);
+        .with_dimensions(800, 800);
     let context = glutin::ContextBuilder::new();
     let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
     let display = glium::Display::from_gl_window(gl_window).unwrap();
@@ -28,15 +32,29 @@ fn main()
 
     let background = loader::get_sprite(&display, "Placeholder.png");
 
-    use vertex::Vertex;
+    //GameObjects
+    let mut grid_inst = grid::Grid::new(&display, &prog);
+
+    use vertex::TextureVertex;
     vertex::macrocall();
-    let shape = vec![
-        Vertex { position: [-11.0, -11.0, 0.0] },
-        Vertex { position: [-11.0, 11.0, 0.0] },
-        Vertex { position: [5.0, 5.0, 0.0] },
-    ];
-    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
+    let back_square = vertex::Square
+    {
+        top_left:  TextureVertex { position: [-1.0,  1.0, -1.0], tex_coords: [ 0.0, 1.0 ] },
+        top_right:  TextureVertex { position: [ 1.0,  1.0, -1.0], tex_coords: [ 1.0, 1.0 ] },
+        bottom_left: TextureVertex { position: [-1.0, -1.0, -1.0], tex_coords: [ 0.0, 0.0 ] },
+        bottom_right: TextureVertex { position: [ 1.0, -1.0, -1.0], tex_coords: [ 1.0, 0.0 ] },
+    };
+    let background_buffer = glium::VertexBuffer::new(&display, &back_square.get_vec()).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+
+    //camera transform to direct screen positions.
+    let non_camera =  
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0f32],
+            ];
 
     //MAIN LOOP
     let mut exit_condition = false;
@@ -49,14 +67,19 @@ fn main()
 
         let uniforms = uniform!
         {
-            camera: main_camera.view_matrix,
+            camera: non_camera,
+            tex: &background,
         };
         //CALL DRAWS HERE
-        frame.draw(&vertex_buffer, &indices, &prog, &uniforms, &Default::default()).unwrap();
+        frame.draw(&background_buffer, &indices, &prog, &uniforms, &Default::default()).unwrap();
+
+        use traits::Drawable;
+        grid_inst.draw(&mut frame, &main_camera);
 
         frame.finish().unwrap();
 
         //Listening for events
+        use glium::glutin::VirtualKeyCode;
         events_loop.poll_events(
         |event|
         {
@@ -66,11 +89,16 @@ fn main()
                 {
                     glutin::WindowEvent::Closed => exit_condition = true,
                     glutin::WindowEvent::Resized {0: width, 1: height} => main_camera.adjust_width_height(width, height),
-                    _ => (),
-                },
-                glutin::Event::DeviceEvent { event: d_event, .. } => match d_event
-                {
-                    glutin::DeviceEvent::Key(input_key) => (), //send to gamestate?
+                    glutin::WindowEvent::KeyboardInput { input: k_input, .. } => 
+                    if k_input.state == glutin::ElementState::Pressed
+                    {
+                        match k_input.virtual_keycode.unwrap()
+                        {
+                            VirtualKeyCode::Up => grid_inst.upscale(),
+                            VirtualKeyCode::Down => grid_inst.downscale(),
+                            _ => (),
+                        }
+                    },
                     _ => (),
                 },
                 _ => (),

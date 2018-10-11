@@ -6,9 +6,13 @@ pub fn get_shader(display: &glium::Display) -> glium::Program
         r#"
             #version 130
             in vec3 position;
+            in vec2 tex_coords;
             uniform mat4 camera;
+            out vec2 v_tex_coord;
 
-            void main() {
+            void main() 
+            {
+                v_tex_coord = tex_coords;
                 gl_Position = camera * vec4(position, 1.0);
             }
         "#;
@@ -16,9 +20,13 @@ pub fn get_shader(display: &glium::Display) -> glium::Program
     let fragment_shader_src = 
         r#"
             #version 130
+            in vec2 v_tex_coord;
+            uniform sampler2D tex;
             out vec4 color;
-            void main() {
-                color = vec4(1.0, 0.0, 0.0, 1.0);
+
+            void main() 
+            {
+                color = texture(tex, v_tex_coord);
             }
         "#;
 
