@@ -6,6 +6,7 @@ use vertex::{TextureVertex, Square};
 use traits;
 use camera::Camera;
 use loader;
+use element_array::ElementArray;
 
 #[derive(Copy, Clone, Debug)]
 pub enum GridSize 
@@ -24,6 +25,8 @@ pub struct Grid<'a>
     grid_size : GridSize,
     grid_buffer : VertexBuffer<TextureVertex>, //Main grid area
     top_buffer : VertexBuffer<TextureVertex>, //Above grid area (for dropping elements)
+
+    elements : ElementArray,
 
     tex_top  : Texture2d,
     tex_four : Texture2d,
@@ -48,6 +51,8 @@ impl<'a> Grid<'a>
             grid_size : size,
             grid_buffer : main,
             top_buffer : top,
+
+            elements : ElementArray::new(disp, &size),
 
             tex_top  : loader::get_sprite(disp, "Placeholder.png"),
             tex_four : loader::get_sprite(disp, "Placeholder.png"),
@@ -90,7 +95,8 @@ impl<'a> Grid<'a>
         //Set new size
         self.grid_size = size;
         
-        //Empty grid
+        //Empties grid & resizes it
+        self.elements.reset(&size);
         
         //get corresponding vertexes
         let (main, top) = Grid::get_buffers(self.disp_ref, self.grid_size);
@@ -159,9 +165,20 @@ impl<'a> traits::Drawable for Grid<'a>
             let uniforms = uniform!
             {
                 camera: cam.view_matrix,
-                tex: &self.tex_top, //replace with proper TopGrid texture
+                tex: &self.tex_top,
             };
             frame.draw(&self.top_buffer, &indices, self.shader, &uniforms, &Default::default()).unwrap();
+        }
+
+        //element graphics
+        {
+            let uniforms = uniform!
+            {
+                camera: cam.view_matrix,
+                tex: &self.elements.texture,
+            };
+            let element_buffer = self.elements.get_buffer(self.disp_ref);
+            frame.draw(&element_buffer, &indices, self.shader, &uniforms, &Default::default()).unwrap();
         }
     }
 }

@@ -28,7 +28,7 @@ pub struct Square<T:Copy>
 }
 impl<T:Copy> Square<T>
 {
-    pub fn get_vec(self) -> Vec<T>
+    pub fn get_vec(&self) -> Vec<T>
     {
         vec![
             self.top_left,

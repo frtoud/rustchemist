@@ -11,6 +11,8 @@ mod loader;
 //GameObjects
 mod traits;
 mod grid;
+mod element_array;
+mod element;
 
 fn main() 
 {
