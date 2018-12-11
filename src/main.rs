@@ -2,6 +2,7 @@
 extern crate glium;
 extern crate image;
 use glium::glutin;
+use std::time::Instant;
 
 mod camera;
 mod vertex;
@@ -13,6 +14,7 @@ mod traits;
 mod grid;
 mod element_array;
 mod element;
+mod inputs;
 
 fn main() 
 {
@@ -49,6 +51,7 @@ fn main()
     let background_buffer = glium::VertexBuffer::new(&display, &back_square.get_vec()).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
+    let mut now = Instant::now();
     //camera transform to direct screen positions.
     let non_camera =  
             [
@@ -58,14 +61,23 @@ fn main()
                 [0.0, 0.0, 0.0, 1.0f32],
             ];
 
+    //Remembers previous button states
+    let mut input_memory = inputs::Inputs { rotate : false, left : false, right : false, drop : false };
+
     //MAIN LOOP
     let mut exit_condition = false;
     while !exit_condition
     {
+        //Compute time
+        let duration = now.elapsed();
+        let dt = duration.as_secs() as f32 + duration.subsec_nanos() as f32 * 1e-9;
+        now = Instant::now();
+
         //Draw current state
         use glium::Surface;
         let mut frame = display.draw();
-        frame.clear_color(0.0, 0.0, 0.0, 1.0);
+        frame.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 0.0);
+        //frame.clear_color(0.0, 0.0, 0.0, 1.0);
 
         let uniforms = uniform!
         {
@@ -74,7 +86,6 @@ fn main()
         };
         //CALL DRAWS HERE
         frame.draw(&background_buffer, &indices, &prog, &uniforms, &Default::default()).unwrap();
-
         use traits::Drawable;
         grid_inst.draw(&mut frame, &main_camera);
 
@@ -92,19 +103,52 @@ fn main()
                     glutin::WindowEvent::Closed => exit_condition = true,
                     glutin::WindowEvent::Resized {0: width, 1: height} => main_camera.adjust_width_height(width, height),
                     glutin::WindowEvent::KeyboardInput { input: k_input, .. } => 
-                    if k_input.state == glutin::ElementState::Pressed
+                    match k_input.virtual_keycode.unwrap()
                     {
-                        match k_input.virtual_keycode.unwrap()
+                        VirtualKeyCode::W =>
                         {
-                            VirtualKeyCode::Up => grid_inst.upscale(),
-                            VirtualKeyCode::Down => grid_inst.downscale(),
-                            _ => (),
-                        }
+                            let now = k_input.state == glutin::ElementState::Pressed;
+                            if now { grid_inst.upscale(); }
+                        },
+                        VirtualKeyCode::S =>
+                        {
+                            let now = k_input.state == glutin::ElementState::Pressed;
+                            if now { grid_inst.downscale(); }
+                        },
+                        VirtualKeyCode::Down => 
+                        {
+                            let now = k_input.state == glutin::ElementState::Pressed;
+                            if now && !input_memory.drop { grid_inst.drop_pair(); }
+                            input_memory.drop = now;
+                        },
+                        VirtualKeyCode::Up =>
+                        {
+                            let now = k_input.state == glutin::ElementState::Pressed;
+                            if now && !input_memory.rotate { grid_inst.rotate_pair(); }
+                            input_memory.rotate = now;
+                        },
+                        VirtualKeyCode::Left =>
+                        {
+                            let now = k_input.state == glutin::ElementState::Pressed;
+                            if now && !input_memory.left { grid_inst.move_pair(-1); }
+                            input_memory.left = now;
+                        },
+                        VirtualKeyCode::Right =>
+                        {
+                            let now = k_input.state == glutin::ElementState::Pressed;
+                            if now && !input_memory.right { grid_inst.move_pair(1); }
+                            input_memory.right = now;
+                        },
+                        _ => (),
                     },
                     _ => (),
                 },
                 _ => (),
             }
         });
+
+        //CALL UPDATES HERE
+        use traits::Updatable;
+        grid_inst.update(dt);
     }
 }

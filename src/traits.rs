@@ -9,5 +9,5 @@ pub trait Drawable
 
 pub trait Updatable 
 {
-    fn update(self, f32);
+    fn update(&mut self, f32);
 }

@@ -18,8 +18,21 @@ pub enum GridSize
     EIGHT = 8,
 }
 
+pub enum GameState
+{
+    SPAWNING,
+    PLAY,
+    FALLING,
+    REACTING,
+    READYING,
+    GAME_OVER,
+}
+
 pub struct Grid<'a>
 {
+    game_state : GameState,
+    time : f32,
+
     disp_ref : &'a glium::Display,
 
     grid_size : GridSize,
@@ -46,6 +59,9 @@ impl<'a> Grid<'a>
         let (main, top) = Grid::get_buffers(disp, size);
         Grid 
         {
+            game_state : GameState::PLAY,
+            time : 0.0,
+
             disp_ref : disp,
 
             grid_size : size,
@@ -102,6 +118,9 @@ impl<'a> Grid<'a>
         let (main, top) = Grid::get_buffers(self.disp_ref, self.grid_size);
         self.grid_buffer = main;
         self.top_buffer = top;
+
+        //Reset to play state
+        self.game_state = GameState::PLAY;
     }
 
     fn get_buffers(disp: &glium::Display, size: GridSize) -> (VertexBuffer<TextureVertex>,VertexBuffer<TextureVertex>)
@@ -133,6 +152,36 @@ impl<'a> Grid<'a>
 
         //Return both!
         (main, top)
+    }
+
+    //INPUTS
+    pub fn drop_pair(&mut self)
+    {
+        match self.game_state
+        {
+            GameState::PLAY =>
+            {
+                self.game_state = GameState::FALLING;
+                self.elements.drop_pair();
+                self.elements.make_fall();
+            },
+            _ => (),
+        }
+    }
+    pub fn rotate_pair(&mut self)
+    {
+        match self.game_state
+        {
+            GameState::PLAY =>
+            {
+                self.elements.rotate_pair();
+            },
+            _ => (),
+        }
+    }
+    pub fn move_pair(&mut self, dx : i32)
+    {
+        self.elements.move_pair(dx);
     }
 }
 
@@ -170,6 +219,24 @@ impl<'a> traits::Drawable for Grid<'a>
             frame.draw(&self.top_buffer, &indices, self.shader, &uniforms, &Default::default()).unwrap();
         }
 
+        let (dim_x, dim_y) = self.disp_ref.get_framebuffer_dimensions();
+        let x = - 3.0 - (self.grid_size as i32 as f32);
+        let y = x;
+        let w = 2.0 * (self.grid_size as i32 as f32);
+        let h = w + 6.0; //include top segment
+
+        //Maingrid region
+        let elem_params = glium::DrawParameters 
+        {
+            scissor : Some(cam.get_pixel_coord(x, y, w, h, dim_x, dim_y)),
+            .. Default::default() //For all other parameters, set default
+        };
+        //Next-Pair region
+        let next_params = glium::DrawParameters 
+        {
+            scissor : Some(cam.get_pixel_coord(6.0 + 0.25, 8.0 + 0.25, 6.0 - 0.5, 4.0 - 0.5, dim_x, dim_y)),
+            .. Default::default() //For all other parameters, set default
+        };
         //element graphics
         {
             let uniforms = uniform!
@@ -178,7 +245,65 @@ impl<'a> traits::Drawable for Grid<'a>
                 tex: &self.elements.texture,
             };
             let element_buffer = self.elements.get_buffer(self.disp_ref);
-            frame.draw(&element_buffer, &indices, self.shader, &uniforms, &Default::default()).unwrap();
+            frame.draw(&element_buffer, &indices, self.shader, &uniforms, &elem_params).unwrap();
+            let next_buffer = self.elements.get_next_buffer(self.disp_ref);
+            frame.draw(&next_buffer, &indices, self.shader, &uniforms, &next_params).unwrap();
         }
+    }
+}
+
+impl<'a> traits::Updatable for Grid<'a>
+{
+    fn update(&mut self, delta_t : f32)
+    {
+        match self.game_state
+        {
+            GameState::PLAY => //WAITING FOR FALL INPUT
+            {
+                //Deal with inputs directly
+                //We only update positions here
+                self.elements.move_elements(delta_t);
+            },
+            GameState::FALLING => //WAITING FOR ELEMENTS TO SETTLE
+            {
+                if self.elements.move_elements(delta_t)
+                {
+                    /*
+                    
+                    if self.elements.test_reactions()
+                    {
+                        self.game_state = GameState::REACTING;
+                    }
+                    else
+                    */ if self.elements.test_above()
+                    {
+                        //Continue playing
+                        self.elements.set_next_position(true); //Move next pair away
+                        self.game_state = GameState::READYING;
+                    }
+                    else
+                    {
+                        //game over
+                        let size = self.grid_size;
+                        self.reset_grid(size);
+                    }
+                }
+            },
+            GameState::REACTING => //WAITING FOR ELEMENTS TO STOP REACTING
+            {
+
+            },
+            GameState::READYING => //WAITING FOR NEXT PAIR ANIMATION
+            {
+                if self.elements.move_elements(delta_t)
+                {
+                    self.elements.set_next_position(false);
+                    self.elements.get_next_pair(true);
+                    self.game_state = GameState::PLAY;
+                }
+            },
+            _ => (),
+        }
+        self.time += delta_t;
     }
 }
