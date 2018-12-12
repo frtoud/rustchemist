@@ -20,7 +20,6 @@ pub enum GridSize
 
 pub enum GameState
 {
-    SPAWNING,
     PLAY,
     FALLING,
     REACTING,
@@ -113,6 +112,8 @@ impl<'a> Grid<'a>
         
         //Empties grid & resizes it
         self.elements.reset(&size);
+        //Get Elements to play, too
+        self.elements.get_next_pair(false);
         
         //get corresponding vertexes
         let (main, top) = Grid::get_buffers(self.disp_ref, self.grid_size);
@@ -228,12 +229,14 @@ impl<'a> traits::Drawable for Grid<'a>
         //Maingrid region
         let elem_params = glium::DrawParameters 
         {
+            blend : glium::Blend::alpha_blending(),
             scissor : Some(cam.get_pixel_coord(x, y, w, h, dim_x, dim_y)),
             .. Default::default() //For all other parameters, set default
         };
         //Next-Pair region
         let next_params = glium::DrawParameters 
         {
+            blend : glium::Blend::alpha_blending(),
             scissor : Some(cam.get_pixel_coord(6.0 + 0.25, 8.0 + 0.25, 6.0 - 0.5, 4.0 - 0.5, dim_x, dim_y)),
             .. Default::default() //For all other parameters, set default
         };
@@ -261,21 +264,18 @@ impl<'a> traits::Updatable for Grid<'a>
             GameState::PLAY => //WAITING FOR FALL INPUT
             {
                 //Deal with inputs directly
-                //We only update positions here
+                //We only need to update positions here
                 self.elements.move_elements(delta_t);
             },
             GameState::FALLING => //WAITING FOR ELEMENTS TO SETTLE
             {
                 if self.elements.move_elements(delta_t)
                 {
-                    /*
-                    
                     if self.elements.test_reactions()
                     {
                         self.game_state = GameState::REACTING;
                     }
-                    else
-                    */ if self.elements.test_above()
+                    else if self.elements.test_above()
                     {
                         //Continue playing
                         self.elements.set_next_position(true); //Move next pair away
@@ -291,7 +291,8 @@ impl<'a> traits::Updatable for Grid<'a>
             },
             GameState::REACTING => //WAITING FOR ELEMENTS TO STOP REACTING
             {
-
+                self.elements.make_fall();
+                self.game_state = GameState::FALLING;
             },
             GameState::READYING => //WAITING FOR NEXT PAIR ANIMATION
             {

@@ -38,6 +38,7 @@ fn main()
 
     //GameObjects
     let mut grid_inst = grid::Grid::new(&display, &prog);
+    grid_inst.reset_grid(grid::GridSize::SIX);
 
     use vertex::TextureVertex;
     vertex::macrocall();

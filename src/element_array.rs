@@ -4,8 +4,7 @@ use grid::GridSize;
 use element::{Element, ElementType, ElementTypeList};
 use glium::VertexBuffer;
 use glium::texture::Texture2d;
-use vertex::{TextureVertex, Square};
-use traits;
+use vertex::TextureVertex;
 use loader;
 use std::mem;
 
@@ -14,6 +13,18 @@ pub struct Tile
     x : f32,
     y : f32,
     occupant : Option<Element>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct Coord
+{
+    x : i32,
+    y : i32,
+}
+impl PartialEq for Coord {
+    fn eq(&self, other: &Coord) -> bool 
+    {
+        self.x == other.x && self.y == other.y
+    }
 }
 
 pub enum GuideRotation
@@ -75,7 +86,7 @@ impl ElementArray
     }
     fn reset_next() -> (Tile, Tile)
     {
-        let c = 9.0f32; //Center of next window, X offset. +1 for Y offset
+        let c = 8.0f32; //Center of next window, X offset. +1 for Y offset
         (Tile { x : c - 1.0, y : c + 1.0, occupant : None }, //Left tile
         Tile { x : c + 1.0, y : c + 1.0, occupant : None }) //Right tile
     }
@@ -138,20 +149,6 @@ impl ElementArray
         self.next_2 = n2;
         self.guide_pos = (self.width / 2) - 1;
         self.guide_rot = GuideRotation::LEFT;
-
-        { //ELEMENT TEST
-            let tile = &mut self.pair_1;
-            tile.occupant = Some(Element::new(tile.x, tile.y, ElementType::FIRE));
-        }
-        
-        { //ELEMENT TEST
-            let tile = &mut self.pair_2;
-            tile.occupant = Some(Element::new(tile.x, tile.y, ElementType::WATER));
-        }
-        { //ELEMENT TEST
-            let tile = &mut self.array_at_mut(3,0).unwrap();
-            tile.occupant = Some(Element::new(tile.x, tile.y, ElementType::SALT));
-        }
     }
 
     //Shortcut to test array positions with X and Y
@@ -283,9 +280,6 @@ impl ElementArray
     }
     pub fn rotate_pair(&mut self)
     {
-        let c = -3.0f32; //Center offset
-        let zero = c - (self.width as f32); //[0, 0] offset
-
         self.guide_rot = match self.guide_rot
         {
             GuideRotation::LEFT =>
@@ -366,6 +360,7 @@ impl ElementArray
         };
     }
 
+    //FALLING
     pub fn make_fall(&mut self)
     {
         for px in 0..self.width
@@ -393,6 +388,7 @@ impl ElementArray
         }
     }
 
+    //CHECKING
     pub fn test_above(&self) -> bool
     {
         for px in 0..self.width
@@ -409,6 +405,7 @@ impl ElementArray
         return true
     }
 
+    //PLAYING
     pub fn get_next_pair(&mut self, from_next : bool)
     {
 
@@ -420,9 +417,9 @@ impl ElementArray
         else // we make new ones, we just started a game
         {
             let t_1 = self.element_data.get_element(&vec![ElementType::ASH]);
-            self.next_1.occupant = Some(Element::new(0.0, 0.0, t_1));
+            self.pair_1.occupant = Some(Element::new(0.0, 0.0, t_1));
             let t_2 = self.element_data.get_element(&vec![ElementType::ASH]);
-            self.next_2.occupant = Some(Element::new(0.0, 0.0, t_2));
+            self.pair_2.occupant = Some(Element::new(0.0, 0.0, t_2));
         }
         //move into position
         if self.pair_1.occupant.is_some()
@@ -447,5 +444,82 @@ impl ElementArray
         let x2 = self.next_2.x;
         let y2 = self.next_2.y - 4.0;
         self.next_2.occupant = Some(Element::new(x2, y2, t2));
+    }
+
+    //REACTING
+    pub fn test_reactions(&mut self) -> bool
+    {
+        let mut reacts = false;
+        let mut products : Vec<(Coord, ElementType)> = vec![];
+        for py in 0..self.height
+        {
+            for px in 0..self.width
+            {
+                if self.array_at(px,py).unwrap().occupant.is_some()
+                {
+                    //The initial type 
+                    let t = *self.array_at(px, py).unwrap().occupant.as_ref().unwrap().get_type();
+                    let mut reagents = vec![t];
+                    let mut to_react = vec![Coord{x:px, y:py}];
+                    let mut to_test = vec![Coord{x:px, y:py}];
+                    while to_test.len() > 0
+                    {
+                        //Test neighbors to see if they can contribute to the reaction
+                        let coord = to_test.pop().unwrap();
+                        let tx = coord.x;
+                        let ty = coord.y;
+                        if self.array_at(tx,ty).unwrap().occupant.is_some()
+                        {
+                            //Our current type
+                            let t1 = self.array_at(tx,ty).unwrap().occupant.as_ref().unwrap().get_type();
+                            //Left
+                            self.neighbor_reaction_test(Coord{x:tx-1, y:ty}, t1, &mut to_react, &mut to_test, &mut reagents);
+                            //Right
+                            self.neighbor_reaction_test(Coord{x:tx+1, y:ty}, t1, &mut to_react, &mut to_test, &mut reagents);
+                            //Up
+                            self.neighbor_reaction_test(Coord{x:tx, y:ty+1}, t1, &mut to_react, &mut to_test, &mut reagents);
+                            //Down
+                            self.neighbor_reaction_test(Coord{x:tx, y:ty-1}, t1, &mut to_react, &mut to_test, &mut reagents);
+                        }
+                    }
+                    if to_react.len() >= 3
+                    {
+                        let prod = self.element_data.get_product(&reagents);
+                        if prod.is_some()
+                        {
+                            reacts = true;
+                            while to_react.len() > 0
+                            {
+                                let coord = to_react.pop().unwrap();
+                                self.array_at_mut(coord.x, coord.y).unwrap().occupant = None;
+                            }
+                            products.push((Coord{x:px, y:py}, prod.unwrap()));
+                        }
+                    }
+                }
+            }
+        }
+        while products.len() > 0
+        {
+            let (coord, prod) = products.pop().unwrap();
+            let tile = self.array_at_mut(coord.x, coord.y).unwrap();
+            tile.occupant = Some(Element::new(tile.x, tile.y, prod));
+        }
+        return reacts
+    }
+    fn neighbor_reaction_test(&self, pos:Coord, t:&ElementType, to_react:&mut Vec<Coord>, to_test:&mut Vec<Coord>, reagents:&mut Vec<ElementType>)
+    {
+        if !to_react.contains(&pos)
+        && self.array_at(pos.x,pos.y).is_some() 
+        && self.array_at(pos.x,pos.y).unwrap().occupant.is_some()
+        {
+            let t2 = self.array_at(pos.x,pos.y).unwrap().occupant.as_ref().unwrap().get_type();
+            if self.element_data.can_react(t, t2)
+            {
+                to_react.push(pos);
+                to_test.push(pos);
+                reagents.push(*t2);
+            }
+        }
     }
 }

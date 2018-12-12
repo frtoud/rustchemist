@@ -1,5 +1,6 @@
 use vertex::{TextureVertex, Square};
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ElementType
 {
     AIR,
@@ -9,7 +10,16 @@ pub enum ElementType
     SALT,
     SULFUR,
     MERCURY,
+    LEAD,
+    TIN,
+    IRON,
+    COPPER,
+    SILVER,
+    GOLD,
+    
     ASH,
+    ANTIMONY,
+    AETHER,
 }
 
 pub struct ElementTypeList
@@ -21,7 +31,16 @@ pub struct ElementTypeList
     pub SALT : ElementTypeData,
     pub SULFUR : ElementTypeData,
     pub MERCURY : ElementTypeData,
+    pub LEAD : ElementTypeData,
+    pub TIN : ElementTypeData,
+    pub IRON : ElementTypeData,
+    pub COPPER : ElementTypeData,
+    pub SILVER : ElementTypeData,
+    pub GOLD : ElementTypeData,
+
     pub ASH : ElementTypeData,
+    pub ANTIMONY : ElementTypeData,
+    pub AETHER : ElementTypeData,
 }
 impl ElementTypeList
 {
@@ -33,6 +52,7 @@ impl ElementTypeList
             {
                 x_offset: 0.00,
                 y_offset: 0.75,
+                value: 1,
                 weight: 1,
                 interacts: vec![ElementType::AIR],
                 produces: Option::Some(ElementType::SALT),
@@ -41,6 +61,7 @@ impl ElementTypeList
             {
                 x_offset: 0.25,
                 y_offset: 0.75,
+                value: 1,
                 weight: 1,
                 interacts: vec![ElementType::FIRE],
                 produces: Option::Some(ElementType::SALT),
@@ -49,6 +70,7 @@ impl ElementTypeList
             {
                 x_offset: 0.50,
                 y_offset: 0.75,
+                value: 1,
                 weight: 1,
                 interacts: vec![ElementType::WATER],
                 produces: Option::Some(ElementType::SALT),
@@ -57,6 +79,7 @@ impl ElementTypeList
             {
                 x_offset: 0.75,
                 y_offset: 0.75,
+                value: 1,
                 weight: 1,
                 interacts: vec![ElementType::FIRE],
                 produces: Option::Some(ElementType::SALT),
@@ -65,6 +88,7 @@ impl ElementTypeList
             {
                 x_offset: 0.00,
                 y_offset: 0.50,
+                value: 3,
                 weight: 3,
                 interacts: vec![ElementType::SALT],
                 produces: Option::Some(ElementType::SULFUR),
@@ -73,6 +97,7 @@ impl ElementTypeList
             {
                 x_offset: 0.25,
                 y_offset: 0.50,
+                value: 9,
                 weight: 3,
                 interacts: vec![ElementType::SULFUR],
                 produces: Option::Some(ElementType::MERCURY),
@@ -81,17 +106,92 @@ impl ElementTypeList
             {
                 x_offset: 0.50,
                 y_offset: 0.50,
+                value: 27,
                 weight: 3,
                 interacts: vec![ElementType::MERCURY],
+                produces: Option::Some(ElementType::LEAD),
+            },
+            LEAD : ElementTypeData
+            {
+                x_offset: 0.00,
+                y_offset: 0.25,
+                value: 81,
+                weight: 3,
+                interacts: vec![ElementType::LEAD],
+                produces: Option::Some(ElementType::TIN),
+            },
+            TIN : ElementTypeData
+            {
+                x_offset: 0.25,
+                y_offset: 0.25,
+                value: 243,
+                weight: 3,
+                interacts: vec![ElementType::TIN],
+                produces: Option::Some(ElementType::IRON),
+            },
+            IRON : ElementTypeData
+            {
+                x_offset: 0.50,
+                y_offset: 0.25,
+                value: 729,
+                weight: 3,
+                interacts: vec![ElementType::IRON],
+                produces: Option::Some(ElementType::COPPER),
+            },
+            COPPER : ElementTypeData
+            {
+                x_offset: 0.00,
+                y_offset: 0.00,
+                value: 2187,
+                weight: 3,
+                interacts: vec![ElementType::COPPER],
+                produces: Option::Some(ElementType::SILVER),
+            },
+            SILVER : ElementTypeData
+            {
+                x_offset: 0.25,
+                y_offset: 0.00,
+                value: 6561,
+                weight: 3,
+                interacts: vec![ElementType::SILVER],
+                produces: Option::Some(ElementType::GOLD),
+            },
+            GOLD : ElementTypeData
+            {
+                x_offset: 0.50,
+                y_offset: 0.00,
+                value: 19683,
+                weight: 3,
+                interacts: vec![],
                 produces: Option::None,
             },
             ASH : ElementTypeData
             {
                 x_offset: 0.75,
                 y_offset: 0.50,
+                value: 0,
                 weight: 3,
                 interacts: vec![ElementType::ASH],
                 produces: Option::Some(ElementType::ASH),
+            },
+            ANTIMONY : ElementTypeData
+            {
+                x_offset: 0.75,
+                y_offset: 0.25,
+                value: 0,
+                weight: 3,
+                //All metals except Gold
+                interacts: vec![ElementType::MERCURY, ElementType::LEAD, ElementType::TIN, ElementType::IRON, ElementType::COPPER, ElementType::SILVER],
+                produces: Option::None,
+            },
+            AETHER : ElementTypeData
+            {
+                x_offset: 0.75,
+                y_offset: 0.00,
+                value: 0,
+                weight: 3,
+                interacts: vec![ElementType::AIR, ElementType::EARTH, ElementType::FIRE, ElementType::WATER],
+                produces: Option::None,
             },
         }
     }
@@ -107,13 +207,39 @@ impl ElementTypeList
             ElementType::SALT => &self.SALT,
             ElementType::SULFUR => &self.SULFUR,
             ElementType::MERCURY => &self.MERCURY,
+            ElementType::LEAD => &self.LEAD,
+            ElementType::TIN => &self.TIN,
+            ElementType::IRON => &self.IRON,
+            ElementType::COPPER => &self.COPPER,
+            ElementType::SILVER => &self.SILVER,
+            ElementType::GOLD => &self.GOLD,
             ElementType::ASH => &self.ASH,
+            ElementType::AETHER => &self.AETHER,
+            ElementType::ANTIMONY => &self.ANTIMONY,
         }
     }
 
     pub fn get_element(&self, unlocks : &Vec<ElementType>) -> ElementType
     {
-        ElementType::ASH
+        ElementType::AIR
+    }
+
+    pub fn can_react(&self, e1:&ElementType, e2:&ElementType) -> bool
+    {
+        self.get_data(e1).interacts.contains(e2) || self.get_data(e2).interacts.contains(e1)
+    }
+    pub fn get_product(&self, reagents : &Vec<ElementType>) -> Option<ElementType>
+    {
+        let mut product = None;
+        for i in 0..reagents.len()
+        {
+            let p = self.get_data(&reagents[i]).produces;
+            if p.is_some() && (product.is_none() || self.get_data(product.as_ref().unwrap()).value < self.get_data(p.as_ref().unwrap()).value)
+            {
+                product = p;
+            }
+        }
+        product
     }
 }
 
@@ -121,6 +247,7 @@ pub struct ElementTypeData
 {
     x_offset : f32,
     y_offset : f32,
+    value : u32,
     weight : u32,
     interacts : Vec<ElementType>,
     produces : Option<ElementType>,
@@ -203,5 +330,9 @@ impl Element
     {
         self.x = new_x;
         self.y = new_y;
+    }
+    pub fn get_type(&self) -> &ElementType
+    {
+        &self.t
     }
 }
