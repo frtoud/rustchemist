@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate glium;
 extern crate image;
+extern crate rand;
 use glium::glutin;
 use std::time::Instant;
 

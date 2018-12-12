@@ -52,6 +52,7 @@ pub struct ElementArray
     next_1 : Tile,
     next_2 : Tile,
 
+    unlocks : Vec<ElementType>,
     pub element_data : ElementTypeList,
     pub texture : Texture2d,
 
@@ -125,6 +126,7 @@ impl ElementArray
             
             texture : loader::get_sprite(disp, "Elements.png"),
 
+            unlocks : vec![],
             element_data : ElementTypeList::new(),
 
             effect_time : 0.0,
@@ -149,6 +151,13 @@ impl ElementArray
         self.next_2 = n2;
         self.guide_pos = (self.width / 2) - 1;
         self.guide_rot = GuideRotation::LEFT;
+
+        self.unlocks = vec![];
+        //self.unlocks.push(ElementType::ASH);
+        self.unlocks.push(ElementType::AIR);
+        self.unlocks.push(ElementType::WATER);
+        self.unlocks.push(ElementType::EARTH);
+        self.unlocks.push(ElementType::FIRE);
     }
 
     //Shortcut to test array positions with X and Y
@@ -416,9 +425,9 @@ impl ElementArray
         }
         else // we make new ones, we just started a game
         {
-            let t_1 = self.element_data.get_element(&vec![ElementType::ASH]);
+            let t_1 = self.element_data.get_element(&self.unlocks);
             self.pair_1.occupant = Some(Element::new(0.0, 0.0, t_1));
-            let t_2 = self.element_data.get_element(&vec![ElementType::ASH]);
+            let t_2 = self.element_data.get_element(&self.unlocks);
             self.pair_2.occupant = Some(Element::new(0.0, 0.0, t_2));
         }
         //move into position
@@ -435,12 +444,12 @@ impl ElementArray
             self.pair_2.occupant.as_mut().unwrap().set_pos(xp2, yp2);
         }
         //Spawn new elements
-        let t1 = self.element_data.get_element(&vec![ElementType::ASH]);
+        let t1 = self.element_data.get_element(&self.unlocks);
         let x1 = self.next_1.x;
         let y1 = self.next_1.y - 4.0;
         self.next_1.occupant = Some(Element::new(x1, y1, t1));
 
-        let t2 = self.element_data.get_element(&vec![ElementType::ASH]);
+        let t2 = self.element_data.get_element(&self.unlocks);
         let x2 = self.next_2.x;
         let y2 = self.next_2.y - 4.0;
         self.next_2.occupant = Some(Element::new(x2, y2, t2));
@@ -502,6 +511,7 @@ impl ElementArray
         while products.len() > 0
         {
             let (coord, prod) = products.pop().unwrap();
+            if !self.unlocks.contains(&prod) {self.unlocks.push(prod)}
             let tile = self.array_at_mut(coord.x, coord.y).unwrap();
             tile.occupant = Some(Element::new(tile.x, tile.y, prod));
         }

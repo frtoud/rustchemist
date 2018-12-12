@@ -130,24 +130,25 @@ impl<'a> Grid<'a>
         let t = 6.0f32; //Top offset
         let depth = -2.0f32; //Behind most things
         let val = (size as i32) as f32; //scales with the size of the grid
+        let h = val; //Constant height -- Todo
 
         //Main grid
         let shp = Square
         {
-            top_left:     TextureVertex { position: [c - val, c + val, depth], tex_coords: [ 0.0, 1.0 ] },
-            top_right:    TextureVertex { position: [c + val, c + val, depth], tex_coords: [ 1.0, 1.0 ] },
-            bottom_left:  TextureVertex { position: [c - val, c - val, depth], tex_coords: [ 0.0, 0.0 ] },
-            bottom_right: TextureVertex { position: [c + val, c - val, depth], tex_coords: [ 1.0, 0.0 ] },
+            top_left:     TextureVertex { position: [c - val, c + h, depth], tex_coords: [ 0.0, 1.0 ] },
+            top_right:    TextureVertex { position: [c + val, c + h, depth], tex_coords: [ 1.0, 1.0 ] },
+            bottom_left:  TextureVertex { position: [c - val, c - h, depth], tex_coords: [ 0.0, 0.0 ] },
+            bottom_right: TextureVertex { position: [c + val, c - h, depth], tex_coords: [ 1.0, 0.0 ] },
         };
         let main = VertexBuffer::new(disp, &shp.get_vec()).unwrap();
         
         //Above grid
         let shp_top = Square
         {
-            top_left:     TextureVertex { position: [c - val, c + val + t, depth], tex_coords: [ 0.0, 1.0 ] },
-            top_right:    TextureVertex { position: [c + val, c + val + t, depth], tex_coords: [ val, 1.0 ] },
-            bottom_left:  TextureVertex { position: [c - val, c + val, depth], tex_coords: [ 0.0, 0.0 ] },
-            bottom_right: TextureVertex { position: [c + val, c + val, depth], tex_coords: [ val, 0.0 ] },
+            top_left:     TextureVertex { position: [c - val, c + h + t, depth], tex_coords: [ 0.0, 1.0 ] },
+            top_right:    TextureVertex { position: [c + val, c + h + t, depth], tex_coords: [ val, 1.0 ] },
+            bottom_left:  TextureVertex { position: [c - val, c + h, depth], tex_coords: [ 0.0, 0.0 ] },
+            bottom_right: TextureVertex { position: [c + val, c + h, depth], tex_coords: [ val, 0.0 ] },
         };
         let top = VertexBuffer::new(disp, &shp_top.get_vec()).unwrap();
 

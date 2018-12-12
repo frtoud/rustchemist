@@ -53,7 +53,7 @@ impl ElementTypeList
                 x_offset: 0.00,
                 y_offset: 0.75,
                 value: 1,
-                weight: 1,
+                weight: 30,
                 interacts: vec![ElementType::AIR],
                 produces: Option::Some(ElementType::SALT),
             },
@@ -62,7 +62,7 @@ impl ElementTypeList
                 x_offset: 0.25,
                 y_offset: 0.75,
                 value: 1,
-                weight: 1,
+                weight: 30,
                 interacts: vec![ElementType::FIRE],
                 produces: Option::Some(ElementType::SALT),
             },
@@ -71,7 +71,7 @@ impl ElementTypeList
                 x_offset: 0.50,
                 y_offset: 0.75,
                 value: 1,
-                weight: 1,
+                weight: 30,
                 interacts: vec![ElementType::WATER],
                 produces: Option::Some(ElementType::SALT),
             },
@@ -80,8 +80,8 @@ impl ElementTypeList
                 x_offset: 0.75,
                 y_offset: 0.75,
                 value: 1,
-                weight: 1,
-                interacts: vec![ElementType::FIRE],
+                weight: 30,
+                interacts: vec![ElementType::EARTH],
                 produces: Option::Some(ElementType::SALT),
             },
             SALT : ElementTypeData
@@ -89,7 +89,7 @@ impl ElementTypeList
                 x_offset: 0.00,
                 y_offset: 0.50,
                 value: 3,
-                weight: 3,
+                weight: 40,
                 interacts: vec![ElementType::SALT],
                 produces: Option::Some(ElementType::SULFUR),
             },
@@ -98,7 +98,7 @@ impl ElementTypeList
                 x_offset: 0.25,
                 y_offset: 0.50,
                 value: 9,
-                weight: 3,
+                weight: 24,
                 interacts: vec![ElementType::SULFUR],
                 produces: Option::Some(ElementType::MERCURY),
             },
@@ -107,7 +107,7 @@ impl ElementTypeList
                 x_offset: 0.50,
                 y_offset: 0.50,
                 value: 27,
-                weight: 3,
+                weight: 16,
                 interacts: vec![ElementType::MERCURY],
                 produces: Option::Some(ElementType::LEAD),
             },
@@ -116,7 +116,7 @@ impl ElementTypeList
                 x_offset: 0.00,
                 y_offset: 0.25,
                 value: 81,
-                weight: 3,
+                weight: 12,
                 interacts: vec![ElementType::LEAD],
                 produces: Option::Some(ElementType::TIN),
             },
@@ -125,7 +125,7 @@ impl ElementTypeList
                 x_offset: 0.25,
                 y_offset: 0.25,
                 value: 243,
-                weight: 3,
+                weight: 9,
                 interacts: vec![ElementType::TIN],
                 produces: Option::Some(ElementType::IRON),
             },
@@ -134,7 +134,7 @@ impl ElementTypeList
                 x_offset: 0.50,
                 y_offset: 0.25,
                 value: 729,
-                weight: 3,
+                weight: 6,
                 interacts: vec![ElementType::IRON],
                 produces: Option::Some(ElementType::COPPER),
             },
@@ -152,7 +152,7 @@ impl ElementTypeList
                 x_offset: 0.25,
                 y_offset: 0.00,
                 value: 6561,
-                weight: 3,
+                weight: 1,
                 interacts: vec![ElementType::SILVER],
                 produces: Option::Some(ElementType::GOLD),
             },
@@ -161,7 +161,7 @@ impl ElementTypeList
                 x_offset: 0.50,
                 y_offset: 0.00,
                 value: 19683,
-                weight: 3,
+                weight: 0,
                 interacts: vec![],
                 produces: Option::None,
             },
@@ -170,7 +170,7 @@ impl ElementTypeList
                 x_offset: 0.75,
                 y_offset: 0.50,
                 value: 0,
-                weight: 3,
+                weight: 40,
                 interacts: vec![ElementType::ASH],
                 produces: Option::Some(ElementType::ASH),
             },
@@ -179,7 +179,7 @@ impl ElementTypeList
                 x_offset: 0.75,
                 y_offset: 0.25,
                 value: 0,
-                weight: 3,
+                weight: 10,
                 //All metals except Gold
                 interacts: vec![ElementType::MERCURY, ElementType::LEAD, ElementType::TIN, ElementType::IRON, ElementType::COPPER, ElementType::SILVER],
                 produces: Option::None,
@@ -189,7 +189,7 @@ impl ElementTypeList
                 x_offset: 0.75,
                 y_offset: 0.00,
                 value: 0,
-                weight: 3,
+                weight: 20,
                 interacts: vec![ElementType::AIR, ElementType::EARTH, ElementType::FIRE, ElementType::WATER],
                 produces: Option::None,
             },
@@ -221,7 +221,28 @@ impl ElementTypeList
 
     pub fn get_element(&self, unlocks : &Vec<ElementType>) -> ElementType
     {
-        ElementType::AIR
+        let mut weights : Vec<u32> = Vec::with_capacity(unlocks.len());
+        let mut total = 0.0;
+        for i in 0..unlocks.len()
+        {
+            total += self.get_data(&unlocks[i]).weight as f32;
+            weights.push(self.get_data(&unlocks[i]).weight);
+        }
+        use rand::Rng;
+        let random = rand::thread_rng().gen_range(0.0, total.into());
+
+        let mut temp = 0;
+        for i in 0..weights.len()
+        {
+            temp += weights[i];
+            if temp as f32 > random
+            {
+                return unlocks[i as usize]
+            }
+        }
+
+        println!("HELP! GET ELEMENT FAILED!");
+        ElementType::ASH
     }
 
     pub fn can_react(&self, e1:&ElementType, e2:&ElementType) -> bool

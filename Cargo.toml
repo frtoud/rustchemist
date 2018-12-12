@@ -7,3 +7,4 @@ publish = false
 [dependencies]
 glium = "0.21"
 image = "0.19"
+rand = "0.5"
