@@ -163,6 +163,10 @@ impl ElementArray
     //Shortcut to test array positions with X and Y
     pub fn array_at_mut(&mut self, x: i32, y:i32) -> Option<&mut Tile>
     {
+        if !(x < self.width) || !(y < self.height) || x < 0 || y < 0
+        {
+            return None
+        }
         let index = (x * self.height + y) as usize;
         if index < self.array.len()
         {
@@ -175,6 +179,10 @@ impl ElementArray
     }
     pub fn array_at(&self, x: i32, y:i32) -> Option<&Tile>
     {
+        if !(x < self.width) || !(y < self.height) || x < 0 || y < 0
+        {
+            return None
+        }
         let index = (x * self.height + y) as usize;
         if index < self.array.len()
         {
